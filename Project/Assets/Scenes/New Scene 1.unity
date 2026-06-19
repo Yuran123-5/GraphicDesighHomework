@@ -4971,7 +4971,7 @@ MonoBehaviour:
   initialPos: {x: 0, y: 0}
   boxWidth: 10
   boxHeight: 10
-  numParticles: 200
+  numParticles: 1000
   gravity: 10
   radius: 0.1
   particalColor: {r: 0.007843137, g: 1, b: 0.9896609, a: 1}

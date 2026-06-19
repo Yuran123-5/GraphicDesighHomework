@@ -43,6 +43,8 @@ public class particle : MonoBehaviour
 
     [Header("¹þÏ£¼ÆËã")]
     public Dictionary<int, List<int>> particles_dic;
+    int[] dx = { 0, 0, -1, 1, 1, 1, -1, -1, 0 };
+    int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1, 0 };
     [Obsolete]
     void Start()
     {
@@ -128,8 +130,9 @@ public class particle : MonoBehaviour
     public void updateVelocity(ref Vector2 pos, ref Vector2 vel, int index)
     {
         vel += Vector2.down * gravity * Time.deltaTime;
+        pos += vel * Time.deltaTime;
         float density = particles_density[index];
-        Vector2 pressureForce = calculatePressureForce(index);
+        Vector2 pressureForce = calculatePressureForceByHash(index);
         Vector2 pressureForceAcceleration = pressureForce / density;
         vel += pressureForceAcceleration * Time.deltaTime;
         pos += vel * Time.deltaTime;
@@ -198,8 +201,7 @@ public class particle : MonoBehaviour
         float density = 0;
         const int mass = 1;
         HashSet<int> surroundHash = new HashSet<int>();
-        int[] dx = { 0, 0, -1, 1, 1, 1, -1, -1, 0 };
-        int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1, 0 };
+
         Vector2 CellPos=calculateCellPos(samplePoint);
         for (int i = 0; i < 9; i++)
         {
@@ -255,6 +257,48 @@ public class particle : MonoBehaviour
         }
         return pressureForce;
     }
+    public Vector2 calculatePressureForceByHash(int index)
+    {
+        Vector2 pressureForce = Vector2.zero;
+        const int mass = 1;
+        Vector2 samplePoint = particles_pos[index];
+        HashSet<int> surroundHash = new HashSet<int>();
+
+        Vector2 CellPos = calculateCellPos(samplePoint);
+        for (int i = 0; i < 9; i++)
+        {
+            Vector2 dir = new Vector2(dx[i], dy[i]);
+            Vector2 surroundGrid = CellPos + dir;
+            int hashkey = calculateCellHashKey(surroundGrid);
+            surroundHash.Add(hashkey);
+        }
+        List<int> surroundParticlesByHash = new List<int>();
+        foreach (int hashkey in surroundHash)
+        {
+            if (!particles_dic.ContainsKey(hashkey))
+                continue;
+            List<int> particlesByHash = particles_dic[hashkey];
+            for (int i = 0; i < particlesByHash.Count; i++)
+            {
+                surroundParticlesByHash.Add(particlesByHash[i]);
+            }
+        }
+        for (int i = 0; i < surroundParticlesByHash.Count; i++)
+        {
+            int neighborhood= surroundParticlesByHash[i];
+            if (index == neighborhood)
+                continue;
+            float dst = (particles_pos[surroundParticlesByHash[i]] - samplePoint).magnitude;
+            if(dst>smootherRadius)
+                continue;
+            Vector2 dir = dst == 0 ? GetRandomDir() : (particles_pos[neighborhood] - samplePoint) / dst;
+            float slope = smoothKerneelDerivative(smootherRadius, dst);
+            float density = particles_density[neighborhood];
+            float sharedPressure = calculateSharedPress(density, particles_density[index]);
+            pressureForce += sharedPressure * dir * slope * mass / density;
+        }
+        return pressureForce;
+    }
     public float converDensityToPressure(float density)
     {
         float densityError = density - targetdensity;
@@ -281,13 +325,13 @@ public class particle : MonoBehaviour
     }
     public Vector2 calculateCellPos(Vector2 pos)
     {
-        int x = (int)(pos.x / radius);
-        int y = (int)(pos.y / radius);
+        int x = (int)(pos.x / smootherRadius);
+        int y = (int)(pos.y / smootherRadius);
         return new Vector2(x, y);
     }
     public int calculateCellHashKey(Vector2 CellPos)
     {
-        return (int)((uint)(CellPos.x * 42688201 + CellPos.y * 79193993) % 10);
+        return (int)((uint)(CellPos.x * 42688201 + CellPos.y * 79193993) % 1000);
     }
     public void initParticlesHash()
     {
