@@ -1,12 +1,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 [RequireComponent(typeof(ParticleSystem))]
 public class particle : MonoBehaviour
 {
     public ParticleSystem particlesSystem;
+
+    private static readonly System.Random _rand = new System.Random();
 
     public Vector2[] particles_pos;
     public Vector2[] particles_vel;
@@ -20,7 +24,7 @@ public class particle : MonoBehaviour
     private float boxRight;
 
     [Header("Á£×ÓÉèÖÃ")]
-    [Range(0, 1000)]
+    [Range(0, 5000)]
     public int numParticles = 100;
     [Range(0, 11)]
     public float gravity;
@@ -107,7 +111,7 @@ public class particle : MonoBehaviour
     {
         updateHashGrid();
         updateDensity();
-        updateParticles();
+        updateParticles_2();
     }
     public void updateParticles()
     {
@@ -130,13 +134,48 @@ public class particle : MonoBehaviour
     public void updateVelocity(ref Vector2 pos, ref Vector2 vel, int index)
     {
         vel += Vector2.down * gravity * Time.deltaTime;
-        pos += vel * Time.deltaTime;
         float density = particles_density[index];
         Vector2 pressureForce = calculatePressureForceByHash(index);
         Vector2 pressureForceAcceleration = pressureForce / density;
         vel += pressureForceAcceleration * Time.deltaTime;
         pos += vel * Time.deltaTime;
         boundForBox(ref pos, ref vel);
+    }
+    public void updateParticles_2()
+    {
+        float dt=Time.deltaTime;
+        Parallel.For(0, numParticles, i =>
+        {
+            Vector2 vel = particles_vel[i];
+            vel += Vector2.down * gravity * dt;
+
+            float density = particles_density[i];
+            Vector2 pressureForce = calculatePressureForceByHash(i);
+            Vector2 pressureForceAcceleration = pressureForce / density;
+            vel += pressureForceAcceleration * dt;
+
+            particles_vel[i] = vel;
+        });
+
+        Parallel.For(0, numParticles, i => 
+        {
+            Vector2 vel=particles_vel[i];
+            Vector2 pos=particles_pos[i];
+
+            pos += vel * dt;
+            boundForBox(ref pos,ref vel);
+            particles_vel[i] = vel;
+            particles_pos[i] = pos;
+        });
+
+        for (int i = 0; i < numParticles; i++) {
+            ParticleSystem.Particle particle = particlesArray[i];
+            particle.position = particles_pos[i];
+            particle.startColor = particalColor;
+            particle.startSize = radius;
+            particlesArray[i] = particle;
+        }
+        particlesSystem.SetParticles(particlesArray, particlesArray.Length);
     }
     public void boundForBox(ref Vector2 pos, ref Vector2 vel)
     {
@@ -296,6 +335,7 @@ public class particle : MonoBehaviour
             float density = particles_density[neighborhood];
             float sharedPressure = calculateSharedPress(density, particles_density[index]);
             pressureForce += sharedPressure * dir * slope * mass / density;
+            //pressureForce += converDensityToPressure(density) * dir * slope * mass / density;
         }
         return pressureForce;
     }
@@ -307,15 +347,10 @@ public class particle : MonoBehaviour
     }
     public Vector2 GetRandomDir()
     {
-        float x = 0;
-        float y = 0;
-        while (x == 0 && y == 0)
-        {
-            x = UnityEngine.Random.Range(-1, 1);
-            y = UnityEngine.Random.Range(-1, 1);
-        }
-        float dst = new Vector2(x, y).magnitude;
-        return new Vector2(x, y) / dst;
+        double rad = _rand.NextDouble() * Math.PI * 2;
+        float x = (float)Math.Cos(rad);
+        float y = (float)Math.Sin(rad);
+        return new Vector2(x, y);
     }
     public float calculateSharedPress(float densitya, float densityb)
     {
