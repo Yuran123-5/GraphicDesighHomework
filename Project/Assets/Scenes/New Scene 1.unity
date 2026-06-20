@@ -4973,7 +4973,7 @@ MonoBehaviour:
   boxWidth: 15
   boxHeight: 10
   numParticles: 1000
-  gravity: 0
+  gravity: 10
   radius: 0.1
   particalColor: {r: 0.007843137, g: 1, b: 0.9896609, a: 1}
   boundDamping: 0.7
@@ -4981,7 +4981,7 @@ MonoBehaviour:
   smootherRadius: 1
   particles_density: []
   targetdensity: 7
-  pressureMulitiper: 0.65
+  pressureMulitiper: 12
 --- !u!1 &912786913
 GameObject:
   m_ObjectHideFlags: 0

@@ -146,14 +146,14 @@ public class particle : MonoBehaviour
     }
     public void updateParticles_2()
     {
-        float dt=Time.deltaTime;
+        float dt =Time.deltaTime;
         Parallel.For(0, numParticles, i =>
         {
             Vector2 vel = particles_vel[i];
             vel += Vector2.down * gravity * dt;
             predictpos[i] = particles_pos[i] + vel * dt;
 
-            particles_density[i]=calculateDensity(predictpos[i]);
+            particles_density[i]=calculateDensityByHash(predictpos[i]);
 
             Vector2 pressureForce = calculatePressureForceByHash(i);
             Vector2 pressureForceAcceleration = pressureForce /particles_density[i];
@@ -305,7 +305,7 @@ public class particle : MonoBehaviour
     {
         Vector2 pressureForce = Vector2.zero;
         const int mass = 1;
-        Vector2 samplePoint = particles_pos[index];
+        Vector2 samplePoint = predictpos[index];
         HashSet<int> surroundHash = new HashSet<int>();
 
         Vector2 CellPos = calculateCellPos(samplePoint);
@@ -332,13 +332,16 @@ public class particle : MonoBehaviour
             int neighborhood= surroundParticlesByHash[i];
             if (index == neighborhood)
                 continue;
-            float dst = (particles_pos[surroundParticlesByHash[i]] - samplePoint).magnitude;
+            float dst = (predictpos[surroundParticlesByHash[i]] - samplePoint).magnitude;
             if(dst>smootherRadius)
                 continue;
-            Vector2 dir = dst == 0 ? GetRandomDir() : (particles_pos[neighborhood] - samplePoint) / dst;
+            Vector2 dir = dst == 0 ? GetRandomDir() : (predictpos[neighborhood] - samplePoint) / dst;
             float slope = smoothKerneelDerivative(smootherRadius, dst);
             float density = particles_density[neighborhood];
-            float sharedPressure = calculateSharedPress(density, particles_density[index]);
+            //float sharedPressure = calculateSharedPress(density, particles_density[index]);
+            float p_i = converDensityToPressure(particles_density[index]);
+            float p_j = converDensityToPressure(density);
+            float sharedPressure = (p_i * density) / particles_density[index] + (p_j * particles_density[index]) / density;
             pressureForce += sharedPressure * dir * slope * mass / density;
             //pressureForce += converDensityToPressure(density) * dir * slope * mass / density;
         }
@@ -347,7 +350,8 @@ public class particle : MonoBehaviour
     public float converDensityToPressure(float density)
     {
         float densityError = density - targetdensity;
-        float pressure = densityError * pressureMulitiper;
+        //float pressure =Mathf.Max(0, densityError * pressureMulitiper);
+        float pressure = density * pressureMulitiper;
         return pressure;
     }
     public Vector2 GetRandomDir()
