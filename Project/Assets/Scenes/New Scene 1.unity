@@ -786,7 +786,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 1000
+    maxNumParticles: 4000
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -4968,19 +4968,20 @@ MonoBehaviour:
   particlesSystem: {fileID: 0}
   particles_pos: []
   particles_vel: []
+  predictpos: []
   initialPos: {x: 0, y: 0}
-  boxWidth: 10
+  boxWidth: 15
   boxHeight: 10
   numParticles: 1000
-  gravity: 10
+  gravity: 0
   radius: 0.1
   particalColor: {r: 0.007843137, g: 1, b: 0.9896609, a: 1}
-  boundDamping: 0.9
+  boundDamping: 0.7
   spacing: 0.115
-  smootherRadius: 2
+  smootherRadius: 1
   particles_density: []
-  targetdensity: 2.75
-  pressureMulitiper: 5
+  targetdensity: 7
+  pressureMulitiper: 0.65
 --- !u!1 &912786913
 GameObject:
   m_ObjectHideFlags: 0

@@ -14,6 +14,7 @@ public class particle : MonoBehaviour
 
     public Vector2[] particles_pos;
     public Vector2[] particles_vel;
+    public Vector2[] predictpos;
 
     public Vector2 initialPos;
     public float boxWidth = 10f;
@@ -66,6 +67,7 @@ public class particle : MonoBehaviour
         particlesArray = new ParticleSystem.Particle[numParticles];
         particles_pos = new Vector2[numParticles];
         particles_vel = new Vector2[numParticles];
+        predictpos = new Vector2[numParticles];
         particles_density = new float[numParticles];
         initParticles();
         initParticlesHash();
@@ -95,6 +97,7 @@ public class particle : MonoBehaviour
 
             particles_pos[i] = pos;
             particles_vel[i] = vel;
+            predictpos[i] = pos;
 
             ParticleSystem.Particle particleData = new ParticleSystem.Particle();
             particleData.position = pos;
@@ -110,7 +113,7 @@ public class particle : MonoBehaviour
     void Update()
     {
         updateHashGrid();
-        updateDensity();
+        //updateDensity();
         updateParticles_2();
     }
     public void updateParticles()
@@ -148,10 +151,12 @@ public class particle : MonoBehaviour
         {
             Vector2 vel = particles_vel[i];
             vel += Vector2.down * gravity * dt;
+            predictpos[i] = particles_pos[i] + vel * dt;
 
-            float density = particles_density[i];
+            particles_density[i]=calculateDensity(predictpos[i]);
+
             Vector2 pressureForce = calculatePressureForceByHash(i);
-            Vector2 pressureForceAcceleration = pressureForce / density;
+            Vector2 pressureForceAcceleration = pressureForce /particles_density[i];
             vel += pressureForceAcceleration * dt;
 
             particles_vel[i] = vel;
